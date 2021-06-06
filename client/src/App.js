@@ -23,15 +23,7 @@ function App() {
   }, []);
   return (
     <div className="App">
-      {games &&
-        games.map((game) => {
-          return (
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <div>{JSON.stringify(game)}</div>
-            </div>
-          );
-        })}
-        {JSON.stringify(players)}
+      
     </div>
   );
 }
