@@ -1,0 +1,37 @@
+#character-encoding UTF-8
+#description Created with Macondo
+#id io.woogles SRf8GaPv
+#lexicon NWL20
+#player1 TileRunner TileRunner
+#player2 shadfinn1 shadfinn1
+>TileRunner: DEFGIOS 8D FIDGE +28 28
+>shadfinn1: IINNRUV H4 URIN. +6 6
+>TileRunner: DEORSSS E4 DOSS.ERS +86 114
+>shadfinn1: AEINTVX D3 VIN +20 26
+>TileRunner: BEEIMRU 3G IMBUE +21 135
+>shadfinn1: AAEEITX 2I AX +54 80
+>TileRunner: ELORWYZ 1F YOWL +35 170
+>shadfinn1: AEEIIPT 11B TIP. +6 86
+>TileRunner: EELRWYZ 4K WYE +23 193
+>shadfinn1: AAEEIRV 5J VEE +29 115
+>TileRunner: EILOORZ M3 Z.RO +33 226
+>shadfinn1: AAAGIIR -AAGII +0 115
+>TileRunner: CDEILOT 12A CODE +33 259
+>shadfinn1: ?AAENRT 13D NArRATE +63 178
+>TileRunner: AGILOQT 14B QAT +30 289
+>shadfinn1: EEIMPTT H12 P.TE +27 205
+>TileRunner: CGHILLO 14J HILLO +45 334
+>shadfinn1: ?EIJMOT 15A TIE +22 227
+>TileRunner: CEGKNRR N6 KERN +34 368
+>shadfinn1: ?GJMOOU 15N MU +16 243
+>TileRunner: AABCGNR 8L CA.B +33 401
+>shadfinn1: ?AAGJOO O4 GOA +13 256
+>TileRunner: AAEGNRS 11H SANGAR +21 422
+>shadfinn1: ?AJNOTU L10 T.J +20 276
+>TileRunner: DEFHILO C4 FOLD +20 442
+>shadfinn1: ?AINOU 12L .OIN +14 290
+>shadfinn1: ?AINOU -- -14 276
+>TileRunner: EHI 13M EH +22 464
+>shadfinn1: ?AINOU N2 NA +15 291
+>TileRunner: I 12H .I +7 471
+>TileRunner: (IOU?) +6 477
