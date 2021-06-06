@@ -14,6 +14,7 @@ def get_players():
     cur = conn.cursor()
     cur.execute("""SELECT * from players""")
     rows = cur.fetchall()
+    print(rows)
     return '\n'.join(rows)
 
 
