@@ -1,25 +1,20 @@
 from flask import Flask
 import requests
 import psycopg2 as db
-
-app = Flask(__name__)
-
-
-@app.route('/db')
-def test():
-    print('here1')
-    conn = db.connect(host='ec2-54-225-228-142.compute-1.amazonaws.com',
+conn = db.connect(host='ec2-54-225-228-142.compute-1.amazonaws.com',
                       database='d3q0j784c29nfb',
                       user='kcxfpqbevmxdqj',
                       password='feb984d2b21b614016bfe616add870af8851999c3b40c9c761bff072f3e38ce2')
-    print('here')
+app = Flask(__name__)
+
+
+@app.route('/getPlayers')
+def get_players():
+    
     cur = conn.cursor()
-    cur.execute("""INSERT INTO vendors (vendor_name) values ('apple')""")
-    print('here2')
-    cur.execute('SELECT * from vendors')
+    cur.execute("""SELECT * from players""")
     rows = cur.fetchall()
-    print('here3')
-    print(rows)
+    return rows
 
 
 @app.route('/')
