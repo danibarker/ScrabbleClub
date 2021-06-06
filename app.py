@@ -14,10 +14,7 @@ def test():
                       password='feb984d2b21b614016bfe616add870af8851999c3b40c9c761bff072f3e38ce2')
     print('here')
     cur = conn.cursor()
-    cur.execute("""CREATE TABLE vendors (
-            vendor_id SERIAL PRIMARY KEY,
-            vendor_name VARCHAR(255) NOT NULL
-        )""")
+    cur.execute("""INSERT INTO vendors (vendor_name) values ('apple')""")
     print('here2')
     cur.execute('SELECT * from vendors')
     rows = cur.fetchall()
