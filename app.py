@@ -32,13 +32,21 @@ def get_players():
     cur = conn.cursor()
     cur.execute("""SELECT * from players""")
     rows = cur.fetchall()
-    print(rows)
-    return str(rows)
+    cols = [desc[0] for desc in cur.description]
+    print(cols)
+    players = []
+    for row in rows:
+        player = {}
+        for i,col in enumerate(row):
+            player[cols[i]] = col
+        players.append(player)
+
+    return str(players)
 
 
 
 
-@app.route('/clubID/<club>')
+@app.route('/club-id/<club>')
 def get_club(club):
     res = requests.post(
         'https://woogles.io/twirp/tournament_service.TournamentService/GetTournamentMetadata', json={"slug": f"/club/{club}"})
@@ -46,7 +54,7 @@ def get_club(club):
     return text
 
 
-@app.route('/getGCG/<gameId>')
+@app.route('/get-GCG/<gameId>')
 def get_gcg(gameId):
     res = requests.post(
         'https://woogles.io/twirp/game_service.GameMetadataService/GetGCG', json={"gameId": gameId})
@@ -57,11 +65,11 @@ def get_gcg(gameId):
     return app.send_static_file(f'{gameId}.gcg')
 
 
-@app.route('/recentGames/<clubID>/<page>')
+@app.route('/recent-games/<clubID>/<page>')
 def recent_games(clubID, page):
     print('here')
     res = requests.post('https://woogles.io/twirp/tournament_service.TournamentService/RecentGames',
-                        json={"id": clubID, "num_games": 20, "offset": 20*int(page)-1})
+                        json={"id": clubID, "num_games": 20, "offset": 20*(int(page)-1)})
     text = res.json()
     return text
 @app.route('/', defaults={'path': ''})
