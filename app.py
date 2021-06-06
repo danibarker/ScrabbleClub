@@ -8,7 +8,7 @@ conn = db.connect(host='ec2-54-225-228-142.compute-1.amazonaws.com',
 app = Flask(__name__)
 
 
-@app.route('/getPlayers')
+@app.route('/get_players')
 def get_players():
     
     cur = conn.cursor()
@@ -52,5 +52,4 @@ def recent_games(clubID, page):
 
 
 if __name__ == '__main__':
-    test()
     app.run()
