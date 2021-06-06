@@ -15,7 +15,7 @@ def get_players():
     cur.execute("""SELECT * from players""")
     rows = cur.fetchall()
     print(rows)
-    return '\n'.join(rows)
+    return str(rows)
 
 
 @app.route('/')
