@@ -52,6 +52,7 @@ def start_event():
         query = f"INSERT INTO events (date,pairing_method) values ('{datetime.today()}', {2 if day_of_the_week == 3 else 1});"
         cur = conn.cursor()
         cur.execute(query)
+        conn.commit()
         return 'event open'
     except:
         
