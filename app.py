@@ -46,11 +46,21 @@ def get_players():
 
 @app.route('/start-event')
 def start_event():
-    day_of_the_week = datetime.today().weekday()
-    query = f"INSERT INTO events (date,pairing_method) values ('{datetime.today()}', {2 if day_of_the_week == 3 else 1})"
-    cur = conn.cursor()
-    cur.execute(query)
-    return 'event open'
+    print('here')
+    try:
+        day_of_the_week = datetime.today().weekday()
+        query = f"INSERT INTO events (date,pairing_method) values ('{datetime.today()}', {2 if day_of_the_week == 3 else 1});"
+        cur = conn.cursor()
+        cur.execute(query)
+        return 'event open'
+    except:
+        curs = conn.cursor()
+        curs.execute("ROLLBACK")
+        conn.commit()
+        query = f"select * from events where date = '{datetime.today()}';"
+        curs.execute(query)
+        return str(curs.fetchone())
+
 
 
 @app.route('/club-id/<club>')
@@ -74,7 +84,6 @@ def get_gcg(gameId):
 
 @app.route('/recent-games/<clubID>/<page>')
 def recent_games(clubID, page):
-    print('here')
     res = requests.post('https://woogles.io/twirp/tournament_service.TournamentService/RecentGames',
                         json={"id": clubID, "num_games": 20, "offset": 20*(int(page)-1)})
     text = res.json()
