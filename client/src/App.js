@@ -33,6 +33,8 @@ function App() {
   useEffect(()=>{
     const getPlayers = async ()=>{
       const response = await axios.get('/get_players')
+      const newData = convertPlayersData(response.data)
+      console.log(newData)
       setPlayers(convertPlayersData(response.data))
 
     }
@@ -41,7 +43,12 @@ function App() {
   return (
     <div className="App">
       {players && players.map(player=>{
-        return <div>{player.name}</div>
+        return (<div style={{display:"flex", justifyContent:"center"}}>
+        <div>{player.first_name}</div>
+        <div>{player.last_name}</div>
+        <div>{player.woogles}</div>
+        </div>
+        )
       })}
     </div>
   );

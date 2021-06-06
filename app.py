@@ -1,12 +1,30 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 import requests
 import psycopg2 as db
-conn = db.connect(host='ec2-54-225-228-142.compute-1.amazonaws.com',
-                      database='d3q0j784c29nfb',
-                      user='kcxfpqbevmxdqj',
-                      password='feb984d2b21b614016bfe616add870af8851999c3b40c9c761bff072f3e38ce2')
-app = Flask(__name__)
+import os
 
+# Set environment variables
+if not os.environ.get('HEROKU'):
+
+    os.environ['host'] = 'localhost'
+    os.environ['database'] = 'scrabble'
+    os.environ['user'] = 'danielle'
+    os.environ['password'] = 'password'
+
+# Get environment variables
+USER = os.getenv('user')
+PASSWORD = os.environ.get('password')
+DATABASE = os.environ.get('database')
+HOST = os.environ.get('host')
+conn = db.connect(host=HOST,
+                      database=DATABASE,
+                      user=USER,
+                      password=PASSWORD)
+app = Flask(__name__,static_folder="./client/build")
+
+# @app.route('/')
+# def index():
+#     return app.send_static_file('index.html')
 
 @app.route('/get_players')
 def get_players():
@@ -18,9 +36,6 @@ def get_players():
     return str(rows)
 
 
-@app.route('/')
-def index():
-    return app.send_static_file('index.html')
 
 
 @app.route('/clubID/<club>')
@@ -49,7 +64,14 @@ def recent_games(clubID, page):
                         json={"id": clubID, "num_games": 20, "offset": 20*int(page)-1})
     text = res.json()
     return text
-
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    print(path)
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':
     app.run()
