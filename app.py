@@ -54,9 +54,10 @@ def start_event():
         cur.execute(query)
         return 'event open'
     except:
-        curs = conn.cursor()
-        curs.execute("ROLLBACK")
+        
+        cur.execute("ROLLBACK")
         conn.commit()
+        curs = conn.cursor()
         query = f"select * from events where date = '{datetime.today()}';"
         curs.execute(query)
         return str(curs.fetchone())
