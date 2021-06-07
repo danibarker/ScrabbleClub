@@ -1,54 +1,101 @@
+from datetime import datetime
 import networkx as nx
 from itertools import combinations
+from db import conn, get_attendees, select_to_object_array
+class ScoreCard:
+        def __init__(self):
+            self.id = ""  # 0
+            self.winscore = 0  # 1
+            self.winoppscore = 0  # 2
+            self.losescore = 0  # 3
+            self.loseoppscore = 0  # 4
+            self.spread = 0  # 5
+            self.wins = 0.0  # 6
+            self.games = 0  # 8
+            self.highgame = 0  # 9
+            self.losses = 0.0
+
+def get_scorecards(group_id, player_group):
+    # CALCULATES SPREADS, TOTALS, AVERAGE and HIGH SCORE and SORTS BY GROUP,WINS,SPREAD
+
+    cursor = conn.cursor()
+    rows = cursor.execute(f"""SELECT r.* FROM results r
+    INNER JOIN groups g on r.group_id = g.id
+    WHERE g.id = {group_id}""")
+    cols = [desc[0] for desc in cursor.description]
+    results = select_to_object_array(rows,cols)
+    cards = []
+    for x in player_group:
+        card = ScoreCard()
+        card.id = x['id']
+        card.player = x
+        cards.append(card)
+
+    cards_by_id = dict([(x.id, x) for x in cards])
+    # stereo = store the results twice, once for A vs B, and once for B vs A
+    
+    stereo = [[a.player1, a.score_1, a.player2, a.score_2] for a in results]
+    stereo += [[a.player2, a.score_2, a.player1, a.score_1] for a in results]
+    for r in stereo:
+        # r = ['RANDAL', '346', 'JURAJPI', '345', '1', '1']
+        [p1, s1, _p2, s2] = r
+        # Always only update p1's card.
+        card = cards_by_id.get(p1)
+        if card:
+            card.highgame = max(card.highgame, s1)
+            card.games += 1
+            if s1 > s2:
+                # p1 wins
+                card.winscore += s1
+                card.winoppscore += s2
+                card.wins += 1
+            elif s1 == s2:
+                # p1 p2 tie
+                card.winscore += s1  # Make sure ties don't affect average scores.
+                card.winoppscore += s2
+                card.wins += 0.5
+                card.losses += 0.5
+            else:
+                # p1 loses.
+                card.losescore += s1
+                card.loseoppscore += s2
+                card.wins += 0
+                card.losses += 1
+
+            card.spread += s1 - s2
+    return cards
 
 
-def get_pairings_text(current_round_number, scorecards, _players, _byes, _group=False, _bye_group=False):
-    global round_number, cards, players, byes, group, bye_group
-    round_number = current_round_number
-    cards = scorecards
-    players = _players
-    byes = _byes
-    bye_group = _bye_group
-    group = _group
+def get_pairings(group_id, round_number):
+    cursor = conn.cursor()
+    day_of_the_week = datetime.today().weekday()
+    rows = cursor.execute(f"""SELECT p.*, FROM player_groups pg 
+    INNER JOIN players p ON p.id = pg.player_id
+    WHERE pg.id = {group_id} ORDER BY 
+    {'p.rung' if day_of_the_week == 3 else 'p.rating'}""")
+
+    cols = [desc[0] for desc in cursor.description]
+    player_group = select_to_object_array(rows,cols)
+    round_number = player_group[0]['round_number']
+    scorecards = get_scorecards(group_id, player_group)
+
 
     if round_number <= 1:
-        if group:
-            pairs = pairings_group_round1()
-        else:
-            pairs = pairings_swiss()
+        pairs = pairings_swiss(player_group)
     elif round_number <= 4:
-        pairs = pairings_koth(avoid_repeats=True)
+        pairs = pairings_koth(player_group, scorecards, avoid_repeats=True)
     else:
-        pairs = pairings_koth(avoid_repeats=False)
+        pairs = pairings_koth(player_group, scorecards, avoid_repeats=False)
 
-    header = f"ROUND {round_number}"
-    for pair in pairs:
-        p1 = [p for p in players if p.name == pair[0]][0]
-        p2 = [p for p in players if p.name == pair[1]][0]
-        p1.current_opponent = p2.isc
-        p2.current_opponent = p1.isc
-    body = format_pairings(pairs)
-    text = header + "\n" + body
-    if group:
-        text = body
-    return text
-
-
-def pairings_group_round1():
-    players_in_group = [p for p in players if (p != byes[0] if byes else True)]
-    num_pairs = len(players_in_group) // 2
-    pairs = []
-    for p in range(num_pairs):
-        pairs.append((players_in_group[2 * p].name, players_in_group[2 * p + 1].name))
     return pairs
 
 
-def pairings_koth(avoid_repeats=True):
+def pairings_koth(player_group, scorecards, avoid_repeats=True):
     past_matches = {}
     players_list = {}
     network = nx.Graph()
-    for player in players:
-        for match in player.played_with:
+    for player in player_group:
+        for match in player['played_with']:
             try:
                 past_matches[match + player.name] += 1
                 past_matches[player.name + match] += 1
@@ -56,15 +103,14 @@ def pairings_koth(avoid_repeats=True):
                 past_matches[match + player.name] = 1
                 past_matches[player.name + match] = 1
 
-    correction = len(cards) + 1
-    for sc in cards:
+    correction = len(scorecards) + 1
+    for sc in scorecards:
         correction -= 1
-        if sc.player in players:
-            try:
-                if byes[round_number - 1].name != sc.name:
-                    players_list[sc.name] = [sc.wins, sc.spread, correction]
-            except IndexError:
-                players_list[sc.name] = [sc.wins, sc.spread, correction]
+        try:
+            if byes[round_number - 1].name != sc.id:
+                players_list[sc.id] = [sc.wins, sc.spread, correction]
+        except IndexError:
+            players_list[sc.id] = [sc.wins, sc.spread, correction]
 
     for (p1, p2) in combinations(players_list, 2):
         player_1_win_spread = players_list[p1][0] * 10000 + players_list[p1][1]
@@ -86,54 +132,18 @@ def pairings_koth(avoid_repeats=True):
     return result
 
 
-def format_pairings(pairs):
-    cards_by_name = dict([(x.name, x) for x in cards])
-
-    def fmtp(name):
-        p = cards_by_name[name]
-        return "**%s** (%d) (%.1lf-%.1lf %+d)" % (p.player.isc.lower(), p.player.rating, p.wins, p.losses, p.spread)
-
-    def scoreOf(name):
-        p = cards_by_name[name]
-        return p.wins, p.spread, p.player.rating
-
-    def scoreOf2(pair):
-        [p1, p2] = pair
-        m1 = sorted([scoreOf(p1), scoreOf(p2)], reverse=True)
-        return m1
-
-    ps = list(pairs)
-
-    # Sort list so highest scoring players are on top.
-    ps.sort(reverse=True, key=scoreOf2)
-    # Sort each pair so best player is listed first.
-    ps = [list(sorted(pair, reverse=True, key=scoreOf)) for pair in ps]
-
-    lines = [" %s vs. %s" % (fmtp(p1), fmtp(p2)) for (p1, p2) in ps]
-
-    # If there is a bye, show it.
-    if len(byes) >= round_number:
-        if byes[round_number - 1] and bye_group:
-            lines.append(" **%s** BYE" % byes[round_number - 1].name)
-
-    msg = "\n".join(lines)
-    return msg
-
-
-def pairings_swiss():
+def pairings_swiss(player_group):
     # This is hardcoded to assume swiss pairings will only be used for the first round.
     # it simply chops the list in two [A1..An] and [B1..Bn], by rating where 
     # the A's are the top half and the B's are the bottom half.
     # It then pairs A1 vs B1, A2 vs B2, ..., An vs Bn.
 
-    attendees = [p for p in players if p.attend]
 
     # Find all players but the bye, if there is  one.
     if byes:
-        attendees = [x for x in attendees if x != byes[0]]
-
-    # Sort players by their ratings.
-    attendees.sort(reverse=True, key=lambda x: x.rating)
+        attendees = [x for x in player_group if x != byes[0]]
+    else:
+        attendees = player_group
 
     # Since we have taken out the byes, the list should be even now.
 

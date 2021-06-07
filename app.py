@@ -1,95 +1,93 @@
 from flask import Flask, send_from_directory
 import requests
-import psycopg2 as db
+from db import add_result, get_attendees, get_players, open_event, add_attendee, remove_attendee, start_event
 import os
-from datetime import datetime
 
-# Set environment variables
-if not os.environ.get('HEROKU'):
+app = Flask(__name__, static_folder="./client/build")
 
-    os.environ['host'] = 'localhost'
-    os.environ['database'] = 'scrabble'
-    os.environ['user'] = 'danielle'
-    os.environ['password'] = 'password'
-
-# Get environment variables
-USER = os.getenv('user')
-PASSWORD = os.environ.get('password')
-DATABASE = os.environ.get('database')
-HOST = os.environ.get('host')
-conn = db.connect(host=HOST,
-                      database=DATABASE,
-                      user=USER,
-                      password=PASSWORD)
-app = Flask(__name__,static_folder="./client/build")
-
-# @app.route('/')
-# def index():
-#     return app.send_static_file('index.html')
 
 @app.route('/get_players')
-def get_players():
-    
-    cur = conn.cursor()
-    cur.execute("""SELECT * from players""")
-    rows = cur.fetchall()
-    cols = [desc[0] for desc in cur.description]
-    print(cols)
-    players = []
-    for row in rows:
-        player = {}
-        for i,col in enumerate(row):
-            player[cols[i]] = col
-        players.append(player)
+def get_players_route():
 
-    return str(players)
+    players = get_players()
 
-@app.route('/start-event')
-def start_event():
-    print('here')
-    try:
-        day_of_the_week = datetime.today().weekday()
-        query = f"INSERT INTO events (date,pairing_method) values ('{datetime.today()}', {2 if day_of_the_week == 3 else 1});"
-        cur = conn.cursor()
-        cur.execute(query)
-        conn.commit()
-        return 'event open'
-    except:
-        
-        cur.execute("ROLLBACK")
-        conn.commit()
-        curs = conn.cursor()
-        query = f"select * from events where date = '{datetime.today()}';"
-        curs.execute(query)
-        return str(curs.fetchone())
+    return {"error": "" if players else "failed to get", "data": str(players)}
 
+
+@app.route('/open-event')
+def open_event_route():
+    event_id = open_event()
+    return {"error": "" if event_id else "failed to open", "data": event_id}
+
+
+@app.route('/add-attendee/<event_id>/<player_id>')
+def add_attendee_route(event_id, player_id):
+    added = add_attendee(event_id, player_id)
+    return {"error": "" if added else "failed to add"}
+
+
+@app.route('/remove-attendee/<event_id>/<player_id>')
+def remove_attendee_route(event_id, player_id):
+    removed = remove_attendee(event_id, player_id)
+    return {"error": "" if removed else "failed to remove"}
+
+
+@app.route('/get-attendees/<event_id>')
+def get_attendees_route(event_id):
+    attendees = get_attendees(event_id)
+    return {"error": "" if attendees else "failed to get", "data": str(attendees)}
 
 
 @app.route('/club-id/<club>')
-def get_club(club):
-    res = requests.post(
-        'https://woogles.io/twirp/tournament_service.TournamentService/GetTournamentMetadata', json={"slug": f"/club/{club}"})
-    text = res.json()
-    return text
+def get_club_route(club):
+    try:
+        res = requests.post(
+            'https://woogles.io/twirp/tournament_service.TournamentService/GetTournamentMetadata', json={"slug": f"/club/{club}"})
+        text = res.json()
+        return {"data": text}
+    except Exception as e:
+        return {"error": e}
 
 
 @app.route('/get-GCG/<gameId>')
-def get_gcg(gameId):
-    res = requests.post(
-        'https://woogles.io/twirp/game_service.GameMetadataService/GetGCG', json={"gameId": gameId})
-    text = res.json()
-    f = open(f'static/{gameId}.gcg', 'w')
-    f.write(text['gcg'])
-    f.close()
-    return app.send_static_file(f'{gameId}.gcg')
+def get_gcg_route(gameId):
+    try:
+        res = requests.post(
+            'https://woogles.io/twirp/game_service.GameMetadataService/GetGCG', json={"gameId": gameId})
+        text = res.json()
+        f = open(f'static/{gameId}.gcg', 'w')
+        f.write(text['gcg'])
+        f.close()
+        return {"data": app.send_static_file(f'{gameId}.gcg')}
+    except Exception as e:
+        return {"error": e}
 
 
 @app.route('/recent-games/<clubID>/<page>')
-def recent_games(clubID, page):
-    res = requests.post('https://woogles.io/twirp/tournament_service.TournamentService/RecentGames',
-                        json={"id": clubID, "num_games": 20, "offset": 20*(int(page)-1)})
-    text = res.json()
-    return text
+def recent_games_route(clubID, page):
+    try:
+        res = requests.post('https://woogles.io/twirp/tournament_service.TournamentService/RecentGames',
+                            json={"id": clubID, "num_games": 20, "offset": 20*(int(page)-1)})
+        text = res.json()
+        return {"data": text}
+    except Exception as e:
+        return {"error": e}
+
+
+@app.route('/start-event/<event_id>')
+def start_event_route(event_id):
+    return str(start_event(event_id))
+
+
+@app.route('/add-result/<event_id>/<round>/<group>/<player1>/<player2>/<score1>/<score2>')
+def add_result_route(event_id, round, group, player1, player2, score1, score2):
+    add_result(event_id, round, group, player1, player2, score1, score2)
+
+@app.route('/get-pairings/<event_id>/<group>')
+def get_pairings_route(event_id, group):
+    pairings = get_pairings(event_id, group)
+    return pairings
+    
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -98,6 +96,7 @@ def serve(path):
         return send_from_directory(app.static_folder, path)
     else:
         return send_from_directory(app.static_folder, 'index.html')
+
 
 if __name__ == '__main__':
     app.run()
