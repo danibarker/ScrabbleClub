@@ -1,6 +1,8 @@
 from flask import Flask, send_from_directory
 import requests
-from db import add_result, get_attendees, get_players, open_event, add_attendee, remove_attendee, start_event
+from db import add_result, get_attendees, \
+    get_players, open_event, add_attendee, \
+    remove_attendee, start_event
 import os
 
 app = Flask(__name__, static_folder="./client/build")
@@ -83,11 +85,13 @@ def start_event_route(event_id):
 def add_result_route(event_id, round, group, player1, player2, score1, score2):
     add_result(event_id, round, group, player1, player2, score1, score2)
 
+
 @app.route('/get-pairings/<event_id>/<group>')
 def get_pairings_route(event_id, group):
     pairings = get_pairings(event_id, group)
     return pairings
-    
+
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
